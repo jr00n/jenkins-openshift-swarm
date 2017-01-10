@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: Template
+labels:
+  template: jenkins-master-swarm
+metadata:
+  annotations:
+    description: Creates a Jenkins master image with JOS plugins and config
+    iconClass: icon-jenkins
+    tags: instant-app,jenkins
+  name: jenkins-master-swarm
+parameters:
+- description: Git source URI for Jenkins extra config
+  name: SOURCE_REPOSITORY_URL
+  required: true
+  value: https://github.com/jr00n/jenkins-swarm.git
+- description: Git branch/tag reference
+  name: SOURCE_REPOSITORY_REF
+  value: master
+- description: Path within Git project to build; empty for root project directory.
+  name: CONTEXT_DIR
+  value: master
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  value: 512Mi
+objects:
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: jenkins-master-swarm
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    name: jenkins-master-swarm
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: jenkins-master-swarm:latest
+    resources:
+      limits:
+        memory: ${MEMORY_LIMIT}
+    source:
+      contextDir: ${CONTEXT_DIR}
+      git:
+        uri: ${SOURCE_REPOSITORY_URL}
+        ref: ${SOURCE_REPOSITORY_REF}
+      secrets: []
+      type: Git
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: jenkins:2
+          namespace: openshift
+      type: Source
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange
+  status:
+    lastVersion: 0
