@@ -16,7 +16,7 @@
   - name: IMAGE_TAG
     displayName: Name and tag of image
     description: Name and tag of the image to use for deployment.
-    value: 'jenkins-master-swarm:2'
+    value: 'jenkins-s2i-master-swarm:2'
   - description: Label for slave pods which are used by Jenkins to discover slave pods and assign jobs to them
     displayName: Jenkins Slave Label
     name: SLAVE_LABEL

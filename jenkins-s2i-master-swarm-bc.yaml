@@ -27,7 +27,7 @@ objects:
 - apiVersion: v1
   kind: ImageStream
   metadata:
-    name: jenkins-master-swarm
+    name: jenkins-s2i-master-swarm
 - apiVersion: v1
   kind: BuildConfig
   metadata:
@@ -36,7 +36,7 @@ objects:
     output:
       to:
         kind: ImageStreamTag
-        name: jenkins-master-swarm:latest
+        name: jenkins-s2i-master-swarm:latest
     resources:
       limits:
         memory: ${MEMORY_LIMIT}
