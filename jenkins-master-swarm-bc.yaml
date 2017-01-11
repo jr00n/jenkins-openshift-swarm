@@ -18,7 +18,7 @@ parameters:
   value: master
 - description: Path within Git project to build; empty for root project directory.
   name: CONTEXT_DIR
-  value: master
+  value: master-s2i
 - description: Maximum amount of memory the container can use.
   displayName: Memory Limit
   name: MEMORY_LIMIT
