@@ -1,0 +1,310 @@
+  apiVersion: v1
+  kind: Template
+  labels:
+    template: jenkins-master-slave-swarm
+  metadata:
+    annotations:
+      description: Deploys a Jenkins master and slave from JOS images
+      iconClass: icon-jenkins
+      tags: instant-app,jenkins
+    name: jenkins-master-jos
+  parameters:
+  - description: Git source URI for Jenkins master extra config
+    name: MASTER_SOURCE_REPOSITORY_URL
+    required: true
+    value: https://github.com/jr00n/jenkins-openshift-swarm.git
+  - description: Git branch/tag reference
+    name: MASTER_SOURCE_REPOSITORY_REF
+    value: master
+  - description: Path within Git project to build; empty for root project directory.
+    name: CONTEXT_DIR
+    value: master-s2i
+  - description: Git repository with Dockerfile and slave entrypoint.
+    displayName: Repository URL
+    name: SLAVE_REPO_URL
+    value: https://github.com/jr00n/jenkins-openshift-swarm.git
+  - description: The sub-directory inside the repository.
+    displayName: Context Directory
+    name: SLAVE_REPO_CONTEXTDIR
+    value: slave
+  - description: The git ref or tag to use for customization.
+    displayName: Git Reference
+    name: SLAVE_REPO_REF
+    value: master
+  - description: Maximum amount of memory the container can use.
+    displayName: Memory Limit
+    name: MEMORY_LIMIT
+    value: 512Mi
+  - description: Label for slave pods which are used by Jenkins to discover slave pods and assign jobs to them
+    displayName: Jenkins Slave Label
+    name: SLAVE_LABEL
+    required: true
+    value: maven
+  - description: Jenkins master username.
+    displayName: Jenkins username
+    name: JENKINS_USERNAME
+    value: admin
+  - description: Jenkins master password
+    displayName: Jenkins password
+    name: JENKINS_PASSWORD
+    value: password
+  - description: Number of executors per slave
+    displayName: Jenkins slave executors
+    name: EXECUTORS
+    value: '3'
+  objects:
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: jenkins-slave-swarm-maven
+    spec: {}
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      name: jenkins-slave-swarm-maven
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: jenkins-slave-swarm-maven:latest
+      resources: {}
+      source:
+        contextDir: ${SLAVE_REPO_CONTEXTDIR}
+        git:
+          ref: ${SLAVE_REPO_REF}
+          uri: ${SLAVE_REPO_URL}
+        type: Git
+      strategy:
+        dockerStrategy:
+        type: Docker
+      triggers:
+      - type: ConfigChange
+  - apiVersion: v1
+    kind: ImageStream
+    metadata:
+      name: jenkins-master-swarm
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      name: jenkins-master-swarm
+    spec:
+      output:
+        to:
+          kind: ImageStreamTag
+          name: jenkins-master-swarm:latest
+      resources:
+        limits:
+          memory: ${MEMORY_LIMIT}
+      source:
+        contextDir: ${CONTEXT_DIR}
+        git:
+          uri: ${MASTER_SOURCE_REPOSITORY_URL}
+          ref: ${MASTER_SOURCE_REPOSITORY_REF}
+        secrets: []
+        type: Git
+      strategy:
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            name: jenkins:2
+            namespace: openshift
+        type: Source
+      triggers:
+      - type: ConfigChange
+      - imageChange: {}
+        type: ImageChange
+    status:
+      lastVersion: 0
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: jenkins
+    spec:
+      ports:
+      - name: web
+        port: 8080
+        protocol: TCP
+        targetPort: 8080
+      - name: jnlp
+        port: 50000
+        protocol: TCP
+        targetPort: 50000
+      selector:
+        application: jenkins-master
+      sessionAffinity: None
+      type: ClusterIP
+  - apiVersion: v1
+    kind: Route
+    metadata:
+      name: jenkins
+    spec:
+      port:
+        targetPort: 8080
+      to:
+        kind: Service
+        name: jenkins
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: jenkins-master
+    spec:
+      replicas: 1
+      selector:
+        application: jenkins-master
+      strategy:
+        type: Recreate
+      template:
+        metadata:
+          labels:
+            application: jenkins-master
+        spec:
+          serviceAccountName: jenkins
+          containers:
+          - env:
+            - name: JENKINS_PASSWORD
+              value: ${JENKINS_PASSWORD}
+            - name: JAVA_OPTS
+              value: '-Dhudson.slaves.NodeProvisioner.recurrencePeriod=500,-Dhudson.slaves.NodeProvisioner.initialDelay=100,-Dhudson.slaves.NodeProvisioner.MARGIN=100'
+            image: " "
+            imagePullPolicy: Always
+            name: jenkins-master
+            ports:
+            - containerPort: 8080
+              protocol: TCP
+            - containerPort: 50000
+              protocol: TCP
+            resources: {}
+            terminationMessagePath: /dev/termination-log
+            volumeMounts:
+            - name: jenkins-data
+              mountPath: /var/lib/jenkins
+            - name: jenkins-plugins
+              mountPath: /var/lib/jenkins/plugins
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+          volumes:
+            - name: jenkins-data
+              persistentVolumeClaim:
+                claimName: jenkins
+            - name: jenkins-plugins
+              emptyDir: {}
+      test: false
+      triggers:
+      - type: ConfigChange
+      - imageChangeParams:
+          automatic: true
+          containerNames:
+          - jenkins-master
+          from:
+            kind: ImageStreamTag
+            name: 'jenkins-master-swarm:latest'
+        type: ImageChange
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: jenkins-slave
+    spec:
+      strategy:
+        type: Rolling
+        rollingParams:
+          updatePeriodSeconds: 1
+          intervalSeconds: 1
+          timeoutSeconds: 600
+          maxUnavailable: 25%
+          maxSurge: 25%
+        resources:
+      triggers:
+        -
+          type: ConfigChange
+        -
+          type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - jenkins-slave-swarm-maven
+            from:
+              kind: ImageStreamTag
+              name: 'jenkins-slave-swarm-maven:latest'
+      replicas: 1
+      selector:
+        application: jenkins-slave-swarm
+        deploymentconfig: jenkins-slave
+      template:
+        metadata:
+          labels:
+            application: jenkins-slave-swarm
+            deploymentconfig: jenkins-slave
+        spec:
+          serviceAccountName: jenkins
+          volumes:
+            -
+              name: jenkins-slave-data
+              emptyDir:
+          containers:
+            -
+              ports:
+              - containerPort: 5555
+                protocol: TCP
+              name: jenkins-slave-swarm-maven
+              image: " "
+              env:
+                -
+                  name: JENKINS_USERNAME
+                  value: ${JENKINS_USERNAME}
+                -
+                  name: JENKINS_PASSWORD
+                  value: ${JENKINS_PASSWORD}
+                -
+                  name: JENKINS_SERVICE_HOST
+                  value: jenkins
+                -
+                  name: JENKINS_SERVICE_PORT
+                  value: '8080'
+                -
+                  name: SLAVE_LABEL
+                  value: ${SLAVE_LABEL}
+                -
+                  name: EXECUTORS
+                  value: ${EXECUTORS}
+                -
+                  name: JENKINS_CONTEXT_PATH
+              resources:
+              volumeMounts:
+                -
+                  name: jenkins-slave-data
+                  mountPath: /var/lib/jenkins
+              terminationMessagePath: /dev/termination-log
+              imagePullPolicy: Always
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext:
+  - kind: PersistentVolumeClaim
+    apiVersion: v1
+    metadata:
+      name: jenkins
+    spec:
+      accessModes:
+        - ReadWriteMany
+      resources:
+        requests:
+          storage: 1Gi
+    status: {}
+  - kind: ServiceAccount
+    apiVersion: v1
+    metadata:
+      name: jenkins
+      serviceaccounts.openshift.io/oauth-redirectreference.jenkins:
+        "{\"kind\":\"OAuthRedirectReference\",\"apiVersion\":\"v1\",\"reference\":{\"kind\":\"Route\",\"name\":\"${JENKINS_SERVICE_NAME}\"}}"
+  - kind: RoleBinding
+    apiVersion: v1
+    metadata:
+      name: jenkins_edit
+    groupNames: null
+    subjects:
+      - kind: ServiceAccount
+        name: jenkins
+    roleRef:
+      name: edit
