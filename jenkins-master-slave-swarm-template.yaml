@@ -146,6 +146,7 @@
             from:
               kind: ImageStreamTag
               name: 'jenkins-slave-swarm-maven:latest'
+              namespace: 'jos'
       replicas: 1
       selector:
         application: jenkins-slave-swarm
