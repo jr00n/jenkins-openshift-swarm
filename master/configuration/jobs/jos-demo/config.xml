@@ -6,7 +6,7 @@
     <script>
       stage(&quot;build&quot;){
         node(&quot;maven&quot;){
-          &quot;sh mvn --version&quot;
+          sh &quot;mvn --version&quot;
         }
       }
     </script>
