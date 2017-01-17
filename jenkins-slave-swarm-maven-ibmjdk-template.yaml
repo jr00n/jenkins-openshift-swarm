@@ -1,0 +1,114 @@
+  apiVersion: v1
+  kind: Template
+  labels:
+    template: jenkins-master-slave-maven-ibmjdk
+  metadata:
+    annotations:
+      description: Deploys a Jenkins master and slave from JOS images
+      iconClass: icon-jenkins
+      tags: instant-app,jenkins
+    name: jenkins-master-jos
+  parameters:
+  - name: IMAGE_NAMESPACE
+    displayName: Namespace of the image
+    description: Namespace where the image is taken from
+    value: jos
+  - description: Label for slave pods which are used by Jenkins to discover slave pods and assign jobs to them
+    displayName: Jenkins Slave Label
+    name: SLAVE_LABEL
+    required: true
+    value: ibmjdk
+  - description: Jenkins master username.
+    displayName: Jenkins username
+    name: JENKINS_USERNAME
+    value: ""
+  - description: Jenkins master password
+    displayName: Jenkins password
+    name: JENKINS_PASSWORD
+    value: ""
+  - description: Number of executors per slave
+    displayName: Jenkins slave executors
+    name: EXECUTORS
+    value: '3'
+  objects:
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: jenkins-master-slave-maven-ibmjdk
+    spec:
+      strategy:
+        type: Rolling
+        rollingParams:
+          updatePeriodSeconds: 1
+          intervalSeconds: 1
+          timeoutSeconds: 600
+          maxUnavailable: 25%
+          maxSurge: 25%
+        resources:
+      triggers:
+        -
+          type: ConfigChange
+        -
+          type: ImageChange
+          imageChangeParams:
+            automatic: true
+            containerNames:
+              - jenkins-slave-swarm-maven-ibmjdk8
+            from:
+              kind: ImageStreamTag
+              name: 'jenkins-slave-swarm-maven-ibmjdk8:latest'
+              namespace: '${IMAGE_NAMESPACE}'
+      replicas: 1
+      selector:
+        application: jenkins-slave-swarm
+        deploymentconfig: jenkins-slave-swarm-maven-ibmjdk
+      template:
+        metadata:
+          labels:
+            application: jenkins-slave-swarm
+            deploymentconfig: jenkins-slave-swarm-maven-ibmjdk
+        spec:
+          serviceAccountName: jenkins
+          volumes:
+            -
+              name: jenkins-slave-data
+              emptyDir:
+          containers:
+            -
+              ports:
+              - containerPort: 5555
+                protocol: TCP
+              name: jenkins-slave-swarm-maven-ibmjdk8
+              image: " "
+              env:
+                -
+                  name: JENKINS_USERNAME
+                  value: ${JENKINS_USERNAME}
+                -
+                  name: JENKINS_PASSWORD
+                  value: ${JENKINS_PASSWORD}
+                -
+                  name: JENKINS_SERVICE_HOST
+                  value: jenkins
+                -
+                  name: JENKINS_SERVICE_PORT
+                  value: '8080'
+                -
+                  name: SLAVE_LABEL
+                  value: ${SLAVE_LABEL}
+                -
+                  name: EXECUTORS
+                  value: ${EXECUTORS}
+                -
+                  name: JENKINS_CONTEXT_PATH
+              resources:
+              volumeMounts:
+                -
+                  name: jenkins-slave-data
+                  mountPath: /var/lib/jenkins
+              terminationMessagePath: /dev/termination-log
+              imagePullPolicy: Always
+          restartPolicy: Always
+          terminationGracePeriodSeconds: 30
+          dnsPolicy: ClusterFirst
+          securityContext:
