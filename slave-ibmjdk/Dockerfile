@@ -24,7 +24,9 @@ RUN curl -L https://github.com/openshift/origin/releases/download/v1.3.0/openshi
     rm -rf openshift-origin-client-tools-*
 
 #Install IBM JDK 8
-ENV IBM_JAVA_VERSION 1.8.0_sr3fp20
+#ENV IBM_JAVA_VERSION 1.8.0_sr3fp20
+ENV IBM_JAVA_VERSION 1.8.0_sr4fp1
+
 RUN ESUM="25f7a7a68535ae1bbd825505060aa8d55bda3a746bab3723f1b13a67d02a45be" \
     && BASE_URL="https://public.dhe.ibm.com/ibmdl/export/pub/systems/cloud/runtimes/java/meta/" \
     && YML_FILE="sdk/linux/x86_64/index.yml" \
