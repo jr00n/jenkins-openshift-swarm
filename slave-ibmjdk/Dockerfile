@@ -24,7 +24,7 @@ RUN curl -L https://github.com/openshift/origin/releases/download/v1.3.0/openshi
     rm -rf openshift-origin-client-tools-*
 
 #Install IBM JDK 8
-ENV IBM_JAVA_VERSION 1.8.0_sr3fp20
+#ENV IBM_JAVA_VERSION 1.8.0_sr3fp20
 # sum = 25f7a7a68535ae1bbd825505060aa8d55bda3a746bab3723f1b13a67d02a45be
 #ENV IBM_JAVA_VERSION 1.8.0_sr4fp1
 # sum = 2b4377c4a8b6934a17ee8e2ec673b4a3d3b97f0b568ef5e20a6ea2e676345bf3
@@ -50,15 +50,15 @@ ENV IBM_JAVA_VERSION 1.8.0_sr3fp20
 #Voor de demo is het internet veel te traag...lokaal oplossen...zucht...
 #10.0.2.2 is de gatway naar vagrant host os...mijn macbook dus, daar een ngnix server draaien met resourcses.
 RUN curl -o /tmp/ibm-java.bin  http://10.0.2.2/ibm-java-sdk-8.0-4.1-x86_64-archive.bin \
-&& echo "INSTALLER_UI=silent" > /tmp/response.properties \
-#    && echo "USER_INSTALL_DIR=/opt/ibm/java" >> /tmp/response.properties \
-#    && echo "LICENSE_ACCEPTED=TRUE" >> /tmp/response.properties \
-#    && mkdir -p /opt/ibm \
-#    && chmod +x /tmp/ibm-java.bin \
-#    && /tmp/ibm-java.bin -i silent -f /tmp/response.properties \
-#    && rm -f /tmp/response.properties \
-#    && rm -f /tmp/index.yml \
-#    && rm -f /tmp/ibm-java.bin
+    && echo "INSTALLER_UI=silent" > /tmp/response.properties \
+    && echo "USER_INSTALL_DIR=/opt/ibm/java" >> /tmp/response.properties \
+    && echo "LICENSE_ACCEPTED=TRUE" >> /tmp/response.properties \
+    && mkdir -p /opt/ibm \
+    && chmod +x /tmp/ibm-java.bin \
+    && /tmp/ibm-java.bin -i silent -f /tmp/response.properties \
+    && rm -f /tmp/response.properties \
+    && rm -f /tmp/index.yml \
+    && rm -f /tmp/ibm-java.bin
 
 ENV JAVA_HOME=/opt/ibm/java/jre \
     PATH=/opt/ibm/java/bin:$PATH
