@@ -1,4 +1,4 @@
-FROM jenkins:2.32.2
+FROM jenkins:2.19.4
 MAINTAINER jr00n
 USER root
 
