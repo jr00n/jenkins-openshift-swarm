@@ -95,9 +95,9 @@
             terminationMessagePath: /dev/termination-log
             volumeMounts:
             - name: jenkins-data
-              mountPath: /var/lib/jenkins
+              mountPath: /var/jenkins_home
             - name: jenkins-plugins
-              mountPath: /var/lib/jenkins/plugins
+              mountPath: /var/jenkins_home/plugins
           dnsPolicy: ClusterFirst
           restartPolicy: Always
           securityContext: {}
