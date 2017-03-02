@@ -4,10 +4,10 @@
     template: jenkins-master-slave-maven-ibmjdk
   metadata:
     annotations:
-      description: Deploys a Jenkins master and slave from JOS images
+      description: Deploys a Jenkins Swarm Slave
       iconClass: icon-jenkins
       tags: instant-app,jenkins
-    name: jenkins-master-jos
+    name: jenkins-slave-swarm-maven-ibmjdk8
   parameters:
   - name: IMAGE_NAMESPACE
     displayName: Namespace of the image
