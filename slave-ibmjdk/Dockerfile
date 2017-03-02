@@ -49,7 +49,7 @@ RUN curl -L https://github.com/openshift/origin/releases/download/v1.3.0/openshi
 
 #Voor de demo is het internet veel te traag...lokaal oplossen...zucht...
 #10.0.2.2 is de gatway naar vagrant host os...mijn macbook dus, daar een ngnix server draaien met resourcses.
-RUN curl -o /tmp/ibm-java.bin  http://10.0.2.2/download/ibm/ibm-java-sdk-8.0-4.1-x86_64-archive.bin \
+RUN curl -o /tmp/ibm-java.bin  http://10.0.2.2/download/ibm/ibm-java-sdk-8.0-3.22-x86_64-archive.bin \
     && echo "INSTALLER_UI=silent" > /tmp/response.properties \
     && echo "USER_INSTALL_DIR=/opt/ibm/java" >> /tmp/response.properties \
     && echo "LICENSE_ACCEPTED=TRUE" >> /tmp/response.properties \
